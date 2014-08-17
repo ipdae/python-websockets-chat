@@ -37,19 +37,7 @@ class ChatBackend(object):
         for message in self.pubsub.listen():
             data = message.get('data')
             if message['type'] == 'message':
-                app.logger.info(u'Sending message: {}'.format(data))
-                yield data
-
-    def register(self, client):
-        """Register a WebSocket connection for Redis updates."""
-        self.clients.append(client)
-
-    def send(self, client, data):
-        """Send given data to the registered client.
-        Automatically discards invalid connections."""
-        try:
-            client.send(data)
-        except Exception:u'Sending message: {}'.format(data))
+                app.logger.info('Sending message: {}'.format(data))
                 yield data
 
     def register(self, client):
@@ -91,37 +79,7 @@ def inbox(ws):
         message = ws.receive()
 
         if message:
-            app.logger.info(u'Inserting message: {}'.format(message))
-            self.clients.remove(client)
-
-    def run(self):
-        """Listens for new messages in Redis, and sends them to clients."""
-        for data in self.__iter_data():
-            for client in self.clients:
-                gevent.spawn(self.send, client, data)
-
-    def start(self):
-        """Maintains Redis subscription in the background."""
-        gevent.spawn(self.run)
-
-chats = ChatBackend()
-chats.start()
-
-
-@app.route('/')
-def hello():
-    return render_template('index.html')
-
-@sockets.route('/submit')
-def inbox(ws):
-    """Receives incoming chat messages, inserts them into Redis."""
-    while ws.socket is not None:
-        # Sleep to prevent *contstant* context-switches.
-        gevent.sleep(0.1)
-        message = ws.receive()
-
-        if message:
-            app.logger.info(u'Inserting message: {}'.format(message))
+            app.logger.info('Inserting message: {}'.format(message.encode('utf-8')))
             redis.publish(REDIS_CHAN, message)
 
 @sockets.route('/receive')
